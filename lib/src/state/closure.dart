@@ -1,19 +1,19 @@
+// ignore_for_file: non_constant_identifier_names
+
 import '../api/lua_type.dart';
 import '../binchunk/binary_chunk.dart';
 import 'upvalue_holder.dart';
 
 class Closure {
-
   final Prototype? proto;
   final DartFunction? dartFunc;
   final List<UpvalueHolder?> upvals;
 
-  Closure(Prototype this.proto) :
-        this.dartFunc = null,
-        this.upvals = List<UpvalueHolder?>.filled(proto.upvalues.length,null);
+  Closure(Prototype this.proto)
+      : dartFunc = null,
+        upvals = List<UpvalueHolder?>.filled(proto.upvalues.length, null);
 
-  Closure.DartFunc(this.dartFunc, int nUpvals) :
-        this.proto = null,
-        this.upvals = List<UpvalueHolder?>.filled(nUpvals,null);
-
+  Closure.DartFunc(this.dartFunc, int nUpvals)
+      : proto = null,
+        upvals = List<UpvalueHolder?>.filled(nUpvals, null);
 }

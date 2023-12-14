@@ -1,9 +1,11 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'buffer.dart';
 
-const luaSignature = [0x1b,0x4c,0x75,0x61];
+const luaSignature = [0x1b, 0x4c, 0x75, 0x61];
 const luacVersion = 0x53;
 const luacFormat = 0;
 const luacData = [0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -23,6 +25,7 @@ const tag_integer = 0x13;
 const tag_short_str = 0x04;
 const tag_long_str = 0x14;
 
+// ignore: unused_element
 class _Header {
   /// 签名。二进制文件的魔数:0x1B4C7561
   Uint8List signature = Uint8List(4);
@@ -109,7 +112,7 @@ class Prototype {
     var len = data.readUint32();
 
     code = Uint32List(len);
-    for(var i = 0;i<len;i++){
+    for (var i = 0; i < len; i++) {
       code[i] = data.readUint32();
     }
 
@@ -153,7 +156,7 @@ class Prototype {
 
     len = data.readUint32();
     lineInfo = Uint32List(len);
-    for(var i = 0;i<len;i++){
+    for (var i = 0; i < len; i++) {
       lineInfo[i] = data.readUint32();
     }
 
@@ -190,7 +193,7 @@ class LocVar {
   int? endPC;
 
   LocVar();
-  LocVar.from(ByteDataReader blob){
+  LocVar.from(ByteDataReader blob) {
     varName = BinaryChunk.getLuaString(blob);
     startPC = blob.readUint32();
     endPC = blob.readUint32();
@@ -198,14 +201,13 @@ class LocVar {
 }
 
 class BinaryChunk {
-  _Header? header;
+  // _Header? _header;
 
   /// 解析二进制
   static Prototype unDump(Uint8List data) {
-    var byteReader = ByteDataReader(endian:Endian.little)
-      ..add(data);
+    var byteReader = ByteDataReader(endian: Endian.little)..add(data);
     _checkHead(byteReader);
-    byteReader.readUint8();// 跳过 size_upvalues
+    byteReader.readUint8(); // 跳过 size_upvalues
     return Prototype.from(byteReader, "");
   }
 
@@ -214,51 +216,51 @@ class BinaryChunk {
 
     for (var i = 0; i < 4; i++) {
       if (luaSignature[i] != magicNum[i]) {
-        throw new Exception("not a precompiled chunk!");
+        throw Exception("not a precompiled chunk!");
       }
     }
 
     if (luacVersion != blob.readUint8()) {
-      throw new Exception("version mismatch!");
+      throw Exception("version mismatch!");
     }
 
     if (luacFormat != blob.readUint8()) {
-      throw new Exception("format mismatch!");
+      throw Exception("format mismatch!");
     }
 
     var data = blob.read(6);
     for (var i = 0; i < 6; i++) {
       if (data[i] != luacData[i]) {
-        throw new Exception("LUAC_DATA corrupted!");
+        throw Exception("LUAC_DATA corrupted!");
       }
     }
 
     if (cintSize != blob.readUint8()) {
-      throw new Exception("int size mismatch!");
+      throw Exception("int size mismatch!");
     }
 
     if (csizetSize != blob.readUint8()) {
-      throw new Exception("size_t size mismatch!");
+      throw Exception("size_t size mismatch!");
     }
 
     if (instructionSize != blob.readUint8()) {
-      throw new Exception("instruction size mismatch!");
+      throw Exception("instruction size mismatch!");
     }
 
     if (luaIntegerSize != blob.readUint8()) {
-      throw new Exception("lua_Integer size mismatch!");
+      throw Exception("lua_Integer size mismatch!");
     }
 
     if (luaNumberSize != blob.readUint8()) {
-      throw new Exception("lua_Number size mismatch!");
+      throw Exception("lua_Number size mismatch!");
     }
 
     if (luacInt != blob.readUint64()) {
-      throw new Exception("endianness mismatch!");
+      throw Exception("endianness mismatch!");
     }
 
     if (luacNum != blob.readFloat64()) {
-      throw new Exception("float format mismatch!");
+      throw Exception("float format mismatch!");
     }
   }
 

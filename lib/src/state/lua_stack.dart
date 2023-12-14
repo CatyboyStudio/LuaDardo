@@ -26,7 +26,7 @@ class LuaStack {
 
   void push(Object? val) {
     if (slots.length > 10000) {
-      // TODO
+      // TODO2
       throw StackOverflowError();
     }
     slots.add(val);
@@ -117,7 +117,7 @@ class LuaStack {
   }
 
   void reverse(int from, int to) {
-    var obj;
+    Object? obj;
     for (; from < to; from++, to--) {
       obj = slots[from];
       slots[from] = slots[to];

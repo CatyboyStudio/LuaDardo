@@ -1,10 +1,9 @@
 class LuaNumber {
-
   static bool isInteger(double f) {
     return f == f.toInt();
   }
 
-  // TODO
+  // TODO2
   static int? parseInteger(String str) {
     try {
       return int.parse(str);
@@ -13,7 +12,7 @@ class LuaNumber {
     }
   }
 
-  // TODO
+  // TODO2
   static double? parseFloat(String str) {
     try {
       return double.parse(str);
@@ -21,5 +20,4 @@ class LuaNumber {
       return null;
     }
   }
-
 }

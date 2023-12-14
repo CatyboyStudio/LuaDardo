@@ -1,7 +1,9 @@
+// ignore_for_file: constant_identifier_names
+
 import '../api/lua_state.dart';
 import '../api/lua_type.dart';
 
-const MAX_LEN = 1000000; // TODO
+const MAX_LEN = 1000000; // TODO2
 
 ///
 /// Operations that an object must define to mimic a table
@@ -126,7 +128,7 @@ class TableLib {
       return 1;
     }
 
-    var buf = List<String?>.filled(j - i + 1,null);
+    var buf = List<String?>.filled(j - i + 1, null);
     for (var k = i; k > 0 && k <= j; k++) {
       ls.getI(1, k);
       if (!ls.isString(-1)) {
@@ -154,7 +156,7 @@ class TableLib {
     if (ls.type(arg) != LuaType.luaTable) {
       /* is it not a table? */
       var n = 1; /* number of elements to pop */
-      var nL = List<int>.filled(1,0)..[0] = n;
+      var nL = List<int>.filled(1, 0)..[0] = n;
       if (ls.getMetatable(arg) && /* must have metatable */
           (what & TAB_R != 0 || _checkField(ls, "__index", nL)) &&
           (what & TAB_W != 0 || _checkField(ls, "__newindex", nL)) &&

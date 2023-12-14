@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:io';
 
 import '../vm/instructions.dart';
@@ -11,36 +13,40 @@ const lua_loaded_table = "_LOADED";
 // key, in the registry, for table of preloaded loaders
 const lua_preload_table = "_PRELOAD";
 
-
 const lua_path_sep = ";";
 const lua_path_mark = "?";
 const lua_exec_dir = "!";
 const lua_igmark = "-";
 
 class PackageLib {
-  static final lua_dirsep = Platform.pathSeparator;
-
-  static const Map<String, DartFunction?> _pkgFuncs = {
-    "searchpath": _pkgSearchPath,
-    /* placeholders */
-    "preload": null,
-    "cpath": null,
-    "path": null,
-    "searchers": null,
-    "loaded": null,
-  };
-
   static const Map<String, DartFunction> _llFuncs = {"require": _pkgRequire};
 
   static int openPackageLib(LuaState ls) {
-    ls.newLib(_pkgFuncs);
-    _createSearchersTable(ls);
+    return openPackageLib2(ls, null, null);
+  }
+
+  static int openPackageLib2(
+      LuaState ls, FileExistsFunction? fexists, String? dirsep) {
+    dirsep ??= Platform.pathSeparator;
+    fexists ??= defaultFileExists;
+    Map<String, DartFunction?> pkgFuncs = {
+      "searchpath": (ls) => _pkgSearchPath(ls, fexists!, dirsep!),
+      /* placeholders */
+      "preload": null,
+      "cpath": null,
+      "path": null,
+      "searchers": null,
+      "loaded": null,
+    };
+    ls.newLib(pkgFuncs);
+    _createSearchersTable(ls, fexists, dirsep);
     // set paths
-    ls.pushString("./?.lua;./?/init.lua");
+    // ls.pushString("./?.lua;./?/init.lua");
+    ls.pushString("/?.lua;/?/init.lua");
     ls.setField(-2, "path");
     // store config information
     ls.pushString(
-        '$lua_dirsep\n$lua_path_sep\n$lua_path_mark\n$lua_exec_dir\n$lua_igmark\n');
+        '$dirsep\n$lua_path_sep\n$lua_path_mark\n$lua_exec_dir\n$lua_igmark\n');
     ls.setField(-2, "config");
     // set field 'loaded'
     ls.getSubTable(luaRegistryIndex, lua_loaded_table);
@@ -55,8 +61,12 @@ class PackageLib {
     return 1; // return 'package' table
   }
 
-  static void _createSearchersTable(LuaState ls) {
-    List<DartFunction> searchers = [_preloadSearcher, _luaSearcher];
+  static void _createSearchersTable(
+      LuaState ls, FileExistsFunction fexists, String dirsep) {
+    List<DartFunction> searchers = [
+      _preloadSearcher,
+      (ls) => _luaSearcher(ls, fexists, dirsep),
+    ];
     var len = searchers.length;
     ls.createTable(len, 0);
     for (var idx = 0; idx < len; idx++) {
@@ -73,12 +83,13 @@ class PackageLib {
 
     if (ls.getField(-1, name) == LuaType.luaNil) {
       /* not found? */
-      ls.pushString("\n\tno field package.preload['" + name! + "']");
+      ls.pushString("\n\tno field package.preload['${name!}']");
     }
     return 1;
   }
 
-  static int _luaSearcher(LuaState ls) {
+  static int _luaSearcher(
+      LuaState ls, FileExistsFunction fexits, String dirsep) {
     var name = ls.checkString(1);
     ls.getField(Instructions.luaUpvalueIndex(1), "path");
     var path = ls.toStr(-1);
@@ -87,7 +98,7 @@ class PackageLib {
     }
 
     try {
-      var filename = _searchPath(name, path, ".", lua_dirsep);
+      var filename = _searchPath(fexits, name, path, ".", dirsep);
       if (ls.loadFile(filename) == ThreadStatus.luaOk) {
         /* module loaded successfully? */
         ls.pushString(filename); /* will be 2nd argument to module */
@@ -102,27 +113,19 @@ class PackageLib {
     }
   }
 
-  static String _searchPath(
-      String? name, String path, String? sep, String? dirSep) {
+  static String _searchPath(FileExistsFunction fileExists, String? name,
+      String path, String? sep, String? dirSep) {
     if (sep != "") {
       name = name!.replaceAll(sep!, dirSep!);
     }
 
     for (var filename in path.split(lua_path_sep)) {
       filename = filename.replaceAll(lua_path_mark, name!);
-      if (FileSystemEntity.isDirectorySync(filename)) {
-        if (Directory(filename).existsSync()) {
-          return filename;
-        } else {
-          throw Exception("\n\tno file '" + filename + "'");
-        }
-      } else {
-        if (File(filename).existsSync()) {
-          return filename;
-        } else {
-          throw Exception("\n\tno file '" + filename + "'");
-        }
+      var res = fileExists(filename);
+      if (!res.$1) {
+        throw Exception("\n\tno file '$filename'");
       }
+      return filename;
     }
     return '';
   }
@@ -130,14 +133,15 @@ class PackageLib {
   // package.searchpath (name, path [, sep [, rep]])
   // http://www.lua.org/manual/5.3/manual.html#pdf-package.searchpath
   // loadlib.c#ll_searchpath
-  static int _pkgSearchPath(LuaState ls) {
+  static int _pkgSearchPath(
+      LuaState ls, FileExistsFunction fexists, String dirsep) {
     var name = ls.checkString(1);
     var path = ls.checkString(2)!;
     var sep = ls.optString(3, ".");
-    var rep = ls.optString(4, lua_dirsep);
+    var rep = ls.optString(4, dirsep);
 
     try {
-      var filename = _searchPath(name, path, sep, rep);
+      var filename = _searchPath(fexists, name, path, sep, rep);
       ls.pushString(filename);
       return 1;
     } catch (e) {

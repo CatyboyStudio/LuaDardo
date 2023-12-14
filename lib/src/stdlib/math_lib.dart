@@ -48,21 +48,21 @@ class MathLib {
     return 1;
   }
 
-  static var rng = new math.Random();
+  static var rng = math.Random();
 
   static int _random(LuaState ls) {
-    var low, up;
+    int low, up;
     switch (ls.getTop()) {
       case 0: /* no arguments */
         ls.pushNumber(rng.nextDouble()); /* Number between 0 and 1 */
         return 1;
       case 1:
         low = 1;
-        up = ls.checkInteger(1);
+        up = ls.checkInteger(1)!;
         break;
       case 2:
-        low = ls.checkInteger(1);
-        up = ls.checkInteger(2);
+        low = ls.checkInteger(1)!;
+        up = ls.checkInteger(2)!;
         break;
       default:
         return ls.error2("wrong number of arguments");
@@ -77,7 +77,7 @@ class MathLib {
 
   static int _randomseed(LuaState ls) {
     var x = ls.checkNumber(1)!;
-    rng = new math.Random(x.floor());
+    rng = math.Random(x.floor());
     return 0;
   }
 
@@ -115,7 +115,7 @@ class MathLib {
 
   static int _log(LuaState ls) {
     var x = ls.checkNumber(1);
-    var res;
+    double res;
 
     if (ls.isNoneOrNil(2)) {
       res = math.log(x!);
@@ -184,6 +184,7 @@ class MathLib {
     return 1;
   }
 
+  // ignore: unused_element
   static int _pushNumInt(LuaState ls, double d) {
     var i = d.toInt();
     if (d - i.toDouble() == 0) {

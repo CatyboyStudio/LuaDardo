@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import '../api/lua_state.dart';
 import '../api/lua_type.dart';
 import '../api/lua_vm.dart';

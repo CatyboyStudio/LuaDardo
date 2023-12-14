@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import '../../vm/opcodes.dart';
 import '../ast/exp.dart';
 import 'block_processor.dart';

@@ -7,7 +7,6 @@ import 'exp_parser.dart';
 import 'stat_parser.dart';
 
 class BlockParser {
-
   // block ::= {stat} [retstat]
   static Block parseBlock(Lexer lexer) {
     Block block = Block(stats: parseStats(lexer), retExps: parseRetExps(lexer));
@@ -17,16 +16,16 @@ class BlockParser {
 
   static List<Stat> parseStats(Lexer lexer) {
     List<Stat> stats = <Stat>[];
-    while (!_isReturnOrBlockEnd(lexer.LookAhead())) {
+    while (!_isReturnOrBlockEnd(lexer.lookAhead())) {
       Stat stat = StatParser.parseStat(lexer);
-      if (!(stat is EmptyStat)) {
+      if (stat is! EmptyStat) {
         stats.add(stat);
       }
     }
     return stats;
   }
 
-   static bool _isReturnOrBlockEnd(TokenKind? kind) {
+  static bool _isReturnOrBlockEnd(TokenKind? kind) {
     switch (kind) {
       case TokenKind.TOKEN_KW_RETURN:
       case TokenKind.TOKEN_EOF:
@@ -42,13 +41,13 @@ class BlockParser {
 
   // retstat ::= return [explist] [‘;’]
   // explist ::= exp {‘,’ exp}
-   static List<Exp> parseRetExps(Lexer lexer) {
-    if (lexer.LookAhead() != TokenKind.TOKEN_KW_RETURN) {
+  static List<Exp> parseRetExps(Lexer lexer) {
+    if (lexer.lookAhead() != TokenKind.TOKEN_KW_RETURN) {
       return List.empty();
     }
 
     lexer.nextToken();
-    switch (lexer.LookAhead()) {
+    switch (lexer.lookAhead()) {
       case TokenKind.TOKEN_EOF:
       case TokenKind.TOKEN_KW_END:
       case TokenKind.TOKEN_KW_ELSE:
@@ -60,11 +59,10 @@ class BlockParser {
         return const <Exp>[];
       default:
         List<Exp> exps = ExpParser.parseExpList(lexer);
-        if (lexer.LookAhead() == TokenKind.TOKEN_SEP_SEMI) {
+        if (lexer.lookAhead() == TokenKind.TOKEN_SEP_SEMI) {
           lexer.nextToken();
         }
         return exps;
     }
   }
-
 }

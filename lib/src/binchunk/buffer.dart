@@ -19,10 +19,10 @@ Future<String> readAsString(Stream<List<int>> stream, {Encoding? encoding}) {
 /// [copy] controls whether the bytes the [stream] provides needs to be copied
 /// (e.g. because the underlying list may get modified).
 Future<Uint8List> readAsBytes(
-    Stream<List<int>> stream, {
-      int? maxLength,
-      bool copy = false,
-    }) async {
+  Stream<List<int>> stream, {
+  int? maxLength,
+  bool copy = false,
+}) async {
   final bb = BytesBuffer();
   await for (List<int> next in stream) {
     bb.add(next);
@@ -42,11 +42,11 @@ Future<Uint8List> readAsBytes(
 /// [copy] controls whether the bytes the [stream] provides needs to be copied
 /// (e.g. because the underlying list may get modified).
 Stream<Uint8List> sliceStream(
-    Stream<List<int>> stream,
-    int sliceLength, {
-      int? maxLength,
-      bool copy = false,
-    }) async* {
+  Stream<List<int>> stream,
+  int sliceLength, {
+  int? maxLength,
+  bool copy = false,
+}) async* {
   var total = 0;
   final buffer = <Uint8List>[];
   await for (List<int> bytes in stream) {
@@ -201,7 +201,7 @@ class ByteDataWriter {
   }
 
   void write(List<int> bytes, {bool copy = false}) {
-    // TODO: may add to current _data buffer
+    // TODO2: may add to current _data buffer
     _flush();
     _bb.add(bytes, copy: copy);
   }
