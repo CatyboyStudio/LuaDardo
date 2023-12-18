@@ -297,9 +297,9 @@ class LuaStateImpl implements LuaState, LuaVM {
   }
 
   @override
-  Userdata? toUserdata<T>(int idx) {
+  Userdata<T>? toUserdata<T>(int idx) {
     Object? val = _stack!.get(idx);
-    return val is Userdata ? val : null;
+    return val is Userdata<T> ? val : null;
   }
 
   @override
@@ -489,7 +489,7 @@ class LuaStateImpl implements LuaState, LuaVM {
   }
 
   @override
-  Userdata newUserdata<T>() {
+  Userdata<T> newUserdata<T>() {
     var r = Userdata<T>();
     _stack!.push(r);
     return r;
@@ -1024,7 +1024,7 @@ class LuaStateImpl implements LuaState, LuaVM {
 
   @override
   ThreadStatus loadString(String s) {
-    return load(utf8.encode(s) as Uint8List, s, "bt");
+    return load(utf8.encode(s), s, "bt");
   }
 
   @override

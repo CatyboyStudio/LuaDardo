@@ -1,8 +1,6 @@
 import 'dart:typed_data';
 
-import '../state/lua_userdata.dart';
-
-import 'lua_type.dart';
+import 'package:lua_dardo/lua.dart';
 
 abstract class LuaBasicAPI {
 /* basic stack manipulation */
@@ -73,7 +71,7 @@ abstract class LuaBasicAPI {
 
   Object? toPointer(int idx);
 
-  Userdata? toUserdata<T>(int idx);
+  Userdata<T>? toUserdata<T>(int idx);
 
   int rawLen(int idx);
 
@@ -106,7 +104,7 @@ abstract class LuaBasicAPI {
 /* get functions (Lua -> stack) */
   void newTable();
 
-  Userdata newUserdata<T>();
+  Userdata<T> newUserdata<T>();
 
   void createTable(int nArr, int nRec);
 
@@ -158,4 +156,159 @@ abstract class LuaBasicAPI {
   int error();
 
   bool stringToNumber(String s);
+}
+
+int pushDartData(LuaState ls, Object? data) {
+  if (data != null) {
+    switch (data) {
+      case bool b:
+        ls.pushBoolean(b);
+        break;
+      case int i:
+        ls.pushInteger(i);
+        break;
+      case double d:
+        ls.pushNumber(d);
+        break;
+      case String s:
+        ls.pushString(s);
+        break;
+      case Map m:
+        ls.newTable();
+        m.forEach((key, value) {
+          pushDartData(ls, key);
+          pushDartData(ls, value);
+          ls.setTable(-3);
+        });
+        break;
+      case List l:
+        ls.newTable();
+        for (int i = 0; i < l.length; i++) {
+          ls.pushInteger(i + 1);
+          pushDartData(ls, l[i]);
+          ls.setTable(-3);
+        }
+        break;
+      default:
+        ls.pushString(data.runtimeType.toString());
+    }
+  } else {
+    ls.pushNil();
+  }
+  return 1;
+}
+
+int pushDartListData(LuaState ls, List<dynamic>? data) {
+  if (data != null) {
+    for (var e in data) {
+      pushDartData(ls, e);
+    }
+    return data.length;
+  }
+  return 0;
+}
+
+Object? popDartData(LuaState ls) {
+  var o = toDartData(ls, -1);
+  ls.pop(1);
+  return o;
+}
+
+Object? toDartData(LuaState ls, int i) {
+  LuaType t = ls.type(i);
+  switch (t) {
+    case LuaType.luaNone:
+      return null;
+    case LuaType.luaNil:
+      return null;
+    case LuaType.luaBoolean:
+      return ls.toBoolean(-1);
+    case LuaType.luaNumber:
+      if (ls.isInteger(i)) {
+        return ls.toInteger(i);
+      } else if (ls.isNumber(i)) {
+        return ls.toNumber(i);
+      }
+      return null;
+    case LuaType.luaString:
+      return ls.toStr(i);
+    case LuaType.luaTable:
+      {
+        bool? array;
+        Map<String, Object?>? m;
+        List<Object?>? l;
+        var tidx = ls.absIndex(i);
+        // len
+        ls.len(i);
+        var c = ls.toInteger(i);
+        ls.pop(1);
+        // for each
+        ls.pushNil();
+        while (ls.next(tidx)) {
+          // uses 'key' (at index -2) and 'value' (at index -1)
+          if (array == null) {
+            if (ls.isInteger(-2)) {
+              array = true;
+            } else {
+              array = false;
+            }
+          }
+          var key = toDartData(ls, -2);
+          var value = toDartData(ls, -1);
+          if (array) {
+            l ??= List.filled(c, null, growable: true);
+            if (key is int) {
+              var idx = key - 1;
+              if (idx < l.length) {
+                l[idx] = value;
+              }
+            }
+          } else {
+            m ??= {};
+            m[key?.toString() ?? ""] = value;
+          }
+          // removes 'value'; keeps 'key' for next iteration
+          ls.pop(1);
+        }
+        if (array ?? false) {
+          return l;
+        } else {
+          return m;
+        }
+      }
+    // case LuaType.luaLightUserdata:
+    // case LuaType.luaFunction:
+    // case LuaType.luaUserdata:
+    // case LuaType.luaThread:
+    default:
+      return ls.typeName(t);
+  }
+}
+
+int _callbackId = 0;
+
+int pushCallback(LuaState ls, int idx) {
+  var id = ++_callbackId;
+  ls.pushValue(idx);
+  ls.setGlobal("--system_callback_$id");
+  return id;
+}
+
+void popCallback(LuaState ls, int id, bool keep) {
+  var name = "--system_callback_$id";
+  ls.getGlobal(name);
+  if (!keep) {
+    ls.pushNil();
+    ls.setGlobal(name);
+  }
+}
+
+int pushBytes(LuaState state, Uint8List bs) {
+  var u = state.newUserdata<Uint8List>();
+  u.data = bs;
+  return 1;
+}
+
+Uint8List? toBytes(LuaState state, int idx) {
+  return state.toUserdata<Uint8List>(idx)?.data;
 }

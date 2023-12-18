@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'dart:io';
 
 import '../../lua.dart';
@@ -8,13 +10,13 @@ class OSLib {
     "difftime": _osDiffTime,
     "time": _osTime,
     "date": _osDate,
-    "remove": _osRemove,
-    "rename": _osRename,
-    "tmpname": _osTmpName,
-    "getenv": _osGetEnv,
-    "execute": _osExecute,
-    "exit": _osExit,
-    "setlocale": _osSetLocale,
+    // "remove": _osRemove,
+    // "rename": _osRename,
+    // "tmpname": _osTmpName,
+    // "getenv": _osGetEnv,
+    // "execute": _osExecute,
+    // "exit": _osExit,
+    // "setlocale": _osSetLocale,
   };
 
   static int openOSLib(LuaState ls) {

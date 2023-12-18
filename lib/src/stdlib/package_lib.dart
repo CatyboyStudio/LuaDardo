@@ -42,7 +42,7 @@ class PackageLib {
     _createSearchersTable(ls, fexists, dirsep);
     // set paths
     // ls.pushString("./?.lua;./?/init.lua");
-    ls.pushString("/?.lua;/?/init.lua");
+    ls.pushString("?.lua;?/init.lua");
     ls.setField(-2, "path");
     // store config information
     ls.pushString(
