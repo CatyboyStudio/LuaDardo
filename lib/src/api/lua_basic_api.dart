@@ -286,20 +286,33 @@ Object? toDartData(LuaState ls, int i) {
 }
 
 int _callbackId = 0;
+const _callbackTableName = "--system_callback--";
 
 int pushCallback(LuaState ls, int idx) {
   var id = ++_callbackId;
+  ls.getGlobal(_callbackTableName);
+  if (!ls.isTable(-1)) {
+    ls.newTable();
+    ls.setGlobal(_callbackTableName);
+    ls.getGlobal(_callbackTableName);
+  }
   ls.pushValue(idx);
-  ls.setGlobal("--system_callback_$id");
+  var name = "callback$id";
+  ls.setField(-2, name);
   return id;
 }
 
 void popCallback(LuaState ls, int id, bool keep) {
-  var name = "--system_callback_$id";
-  ls.getGlobal(name);
-  if (!keep) {
+  ls.getGlobal(_callbackTableName);
+  if (ls.isTable(-1)) {
+    var name = "callback$id";
+    ls.getField(-1, name);
+    if (!keep) {
+      ls.pushNil();
+      ls.setField(-3, name);
+    }
+  } else {
     ls.pushNil();
-    ls.setGlobal(name);
   }
 }
 
