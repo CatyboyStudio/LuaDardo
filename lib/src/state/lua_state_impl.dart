@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:lua_dardo/src/state/lua_userdata.dart';
@@ -30,22 +31,36 @@ import 'closure.dart';
 import 'upvalue_holder.dart';
 
 class LuaStateImpl implements LuaState, LuaVM {
-  FileReadFunction? _fileRead;
-  FileExistsFunction? _fileExists;
-  String? _dirsep;
+  // Adapter
+  @override
+  String get dirsep => Platform.pathSeparator;
+
+  @override
+  (bool, bool) execFileExists(String filename) {
+    if (File(filename).existsSync()) {
+      return (true, true);
+    } else {
+      if (Directory(filename).existsSync()) {
+        return (true, false);
+      } else {
+        return (false, false);
+      }
+    }
+  }
+
+  @override
+  (Uint8List, String) execFileRead(String filename) {
+    File file = File(filename);
+    return (file.readAsBytesSync(), filename);
+  }
 
   LuaStack? _stack = LuaStack();
+  LuaStack? get stack => _stack;
 
   /// 注册表
   LuaTable? registry = LuaTable(0, 0);
 
-  LuaStateImpl(
-      {FileReadFunction? fileRead,
-      FileExistsFunction? fileExists,
-      String? dirsep}) {
-    _fileRead = fileRead;
-    _fileExists = fileExists;
-    _dirsep = dirsep;
+  LuaStateImpl() {
     registry!.put(luaRidxGlobals, LuaTable(0, 0));
     LuaStack stack = LuaStack();
     stack.state = this;
@@ -569,7 +584,7 @@ class LuaStateImpl implements LuaState, LuaVM {
         _callDartClosure(nArgs, nResults, c);
       }
     } else {
-      throw Exception("not function!");
+      throw Exception("call invalid function");
     }
   }
 
@@ -815,10 +830,34 @@ class LuaStateImpl implements LuaState, LuaVM {
       if (msgh != 0) {
         rethrow;
       }
+      String trace = "";
+      var st = _stack;
+      while (st != null) {
+        var cl = _stack!.closure;
+        if (cl != null) {
+          if (cl.dartFunc != null) {
+            trace = "[dark] ";
+          } else {
+            var pro = cl.proto;
+            if (pro != null) {
+              var line = pro.lineDefined;
+              var pc = st.pc - 1;
+              if (pc >= 0 && pc < pro.lineInfo.length) {
+                line = pro.lineInfo[pc];
+              }
+              trace = "[${pro.source}:$line] ";
+            }
+          }
+          break;
+        }
+        st = st.prev;
+      }
+
       while (_stack != caller) {
         _popLuaStack();
       }
-      _stack!.push("$e"); // TODO2
+      var msg = "$trace$e";
+      _stack!.push(msg); // TODO2
       return ThreadStatus.luaErrRun;
     }
   }
@@ -1017,8 +1056,7 @@ class LuaStateImpl implements LuaState, LuaVM {
 
   @override
   ThreadStatus loadFileXE(String? filename, String? mode) {
-    var fr = _fileRead ?? defaultFileRead;
-    var res = fr(filename!);
+    var res = execFileRead(filename!);
     return load(res.$1, "@${res.$2}", mode);
   }
 
@@ -1038,18 +1076,18 @@ class LuaStateImpl implements LuaState, LuaVM {
     createTable(0, l.length);
   }
 
+  static Map<String, DartFunction> libs = <String, DartFunction>{
+    "_G": BasicLib.openBaseLib,
+    "package": PackageLib.openPackageLib,
+    // "package": PackageLib.openPackageLib,
+    "table": TableLib.openTableLib,
+    "string": StringLib.openStringLib,
+    "math": MathLib.openMathLib,
+    "os": OSLib.openOSLib
+  };
+
   @override
   void openLibs() {
-    Map<String, DartFunction> libs = <String, DartFunction>{
-      "_G": BasicLib.openBaseLib,
-      "package": (ls) => PackageLib.openPackageLib2(ls, _fileExists, _dirsep),
-      // "package": PackageLib.openPackageLib,
-      "table": TableLib.openTableLib,
-      "string": StringLib.openStringLib,
-      "math": MathLib.openMathLib,
-      "os": OSLib.openOSLib
-    };
-
     libs.forEach((name, fun) {
       requireF(name, fun, true);
       pop(1);

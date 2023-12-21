@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'lua_state.dart';
@@ -57,21 +56,4 @@ typedef DartFunction = int Function(LuaState ls);
 
 typedef FileReadFunction = (Uint8List, String) Function(String filename);
 
-(Uint8List, String) defaultFileRead(String filename) {
-  File file = File(filename);
-  return (file.readAsBytesSync(), filename);
-}
-
 typedef FileExistsFunction = (bool, bool) Function(String path);
-
-(bool, bool) defaultFileExists(String filename) {
-  if (File(filename).existsSync()) {
-    return (true, true);
-  } else {
-    if (Directory(filename).existsSync()) {
-      return (true, false);
-    } else {
-      return (false, false);
-    }
-  }
-}

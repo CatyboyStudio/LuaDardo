@@ -1,7 +1,5 @@
 // ignore_for_file: constant_identifier_names
 
-import 'dart:io';
-
 import '../vm/instructions.dart';
 
 import '../api/lua_state.dart';
@@ -20,33 +18,25 @@ const lua_igmark = "-";
 
 class PackageLib {
   static const Map<String, DartFunction> _llFuncs = {"require": _pkgRequire};
-
+  static Map<String, DartFunction?> pkgFuncs = {
+    "searchpath": _pkgSearchPath,
+    /* placeholders */
+    "preload": null,
+    "cpath": null,
+    "path": null,
+    "searchers": null,
+    "loaded": null,
+  };
   static int openPackageLib(LuaState ls) {
-    return openPackageLib2(ls, null, null);
-  }
-
-  static int openPackageLib2(
-      LuaState ls, FileExistsFunction? fexists, String? dirsep) {
-    dirsep ??= Platform.pathSeparator;
-    fexists ??= defaultFileExists;
-    Map<String, DartFunction?> pkgFuncs = {
-      "searchpath": (ls) => _pkgSearchPath(ls, fexists!, dirsep!),
-      /* placeholders */
-      "preload": null,
-      "cpath": null,
-      "path": null,
-      "searchers": null,
-      "loaded": null,
-    };
     ls.newLib(pkgFuncs);
-    _createSearchersTable(ls, fexists, dirsep);
+    _createSearchersTable(ls);
     // set paths
     // ls.pushString("./?.lua;./?/init.lua");
     ls.pushString("?.lua;?/init.lua");
     ls.setField(-2, "path");
     // store config information
     ls.pushString(
-        '$dirsep\n$lua_path_sep\n$lua_path_mark\n$lua_exec_dir\n$lua_igmark\n');
+        '${ls.dirsep}\n$lua_path_sep\n$lua_path_mark\n$lua_exec_dir\n$lua_igmark\n');
     ls.setField(-2, "config");
     // set field 'loaded'
     ls.getSubTable(luaRegistryIndex, lua_loaded_table);
@@ -61,11 +51,10 @@ class PackageLib {
     return 1; // return 'package' table
   }
 
-  static void _createSearchersTable(
-      LuaState ls, FileExistsFunction fexists, String dirsep) {
+  static void _createSearchersTable(LuaState ls) {
     List<DartFunction> searchers = [
       _preloadSearcher,
-      (ls) => _luaSearcher(ls, fexists, dirsep),
+      _luaSearcher,
     ];
     var len = searchers.length;
     ls.createTable(len, 0);
@@ -88,8 +77,7 @@ class PackageLib {
     return 1;
   }
 
-  static int _luaSearcher(
-      LuaState ls, FileExistsFunction fexits, String dirsep) {
+  static int _luaSearcher(LuaState ls) {
     var name = ls.checkString(1);
     ls.getField(Instructions.luaUpvalueIndex(1), "path");
     var path = ls.toStr(-1);
@@ -98,7 +86,7 @@ class PackageLib {
     }
 
     try {
-      var filename = _searchPath(fexits, name, path, ".", dirsep);
+      var filename = _searchPath(ls, name, path, ".", ls.dirsep);
       if (ls.loadFile(filename) == ThreadStatus.luaOk) {
         /* module loaded successfully? */
         ls.pushString(filename); /* will be 2nd argument to module */
@@ -113,15 +101,15 @@ class PackageLib {
     }
   }
 
-  static String _searchPath(FileExistsFunction fileExists, String? name,
-      String path, String? sep, String? dirSep) {
+  static String _searchPath(
+      LuaState ls, String? name, String path, String? sep, String? dirSep) {
     if (sep != "") {
       name = name!.replaceAll(sep!, dirSep!);
     }
 
     for (var filename in path.split(lua_path_sep)) {
       filename = filename.replaceAll(lua_path_mark, name!);
-      var res = fileExists(filename);
+      var res = ls.execFileExists(filename);
       if (!res.$1) {
         throw Exception("\n\tno file '$filename'");
       }
@@ -133,15 +121,14 @@ class PackageLib {
   // package.searchpath (name, path [, sep [, rep]])
   // http://www.lua.org/manual/5.3/manual.html#pdf-package.searchpath
   // loadlib.c#ll_searchpath
-  static int _pkgSearchPath(
-      LuaState ls, FileExistsFunction fexists, String dirsep) {
+  static int _pkgSearchPath(LuaState ls) {
     var name = ls.checkString(1);
     var path = ls.checkString(2)!;
     var sep = ls.optString(3, ".");
-    var rep = ls.optString(4, dirsep);
+    var rep = ls.optString(4, ls.dirsep);
 
     try {
-      var filename = _searchPath(fexists, name, path, sep, rep);
+      var filename = _searchPath(ls, name, path, sep, rep);
       ls.pushString(filename);
       return 1;
     } catch (e) {
