@@ -830,10 +830,11 @@ class LuaStateImpl implements LuaState, LuaVM {
       if (msgh != 0) {
         rethrow;
       }
+      print(e);
       String trace = "";
       var st = _stack;
       while (st != null) {
-        var cl = _stack!.closure;
+        var cl = st.closure;
         if (cl != null) {
           if (cl.dartFunc != null) {
             trace = "[dark] ";
@@ -846,9 +847,9 @@ class LuaStateImpl implements LuaState, LuaVM {
                 line = pro.lineInfo[pc];
               }
               trace = "[${pro.source}:$line] ";
+              break;
             }
           }
-          break;
         }
         st = st.prev;
       }

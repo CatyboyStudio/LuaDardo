@@ -285,34 +285,49 @@ Object? toDartData(LuaState ls, int i) {
   }
 }
 
-int _callbackId = 0;
-const _callbackTableName = "--system_callback--";
+int _refId = 0;
+const _refTableName = "--system_ref--";
 
 int pushCallback(LuaState ls, int idx) {
-  var id = ++_callbackId;
-  ls.getGlobal(_callbackTableName);
+  if (!ls.isFunction(idx)) {
+    return 0;
+  }
+  return pushRef(ls, idx);
+}
+
+int pushRef(LuaState ls, int idx) {
+  var id = ++_refId;
+  ls.getGlobal(_refTableName);
   if (!ls.isTable(-1)) {
     ls.newTable();
-    ls.setGlobal(_callbackTableName);
-    ls.getGlobal(_callbackTableName);
+    ls.setGlobal(_refTableName);
+    ls.getGlobal(_refTableName);
   }
   ls.pushValue(idx);
-  var name = "callback$id";
+  var name = "ref$id";
   ls.setField(-2, name);
   return id;
 }
 
 void popCallback(LuaState ls, int id, bool keep) {
-  ls.getGlobal(_callbackTableName);
-  if (ls.isTable(-1)) {
-    var name = "callback$id";
-    ls.getField(-1, name);
-    if (!keep) {
-      ls.pushNil();
-      ls.setField(-3, name);
-    }
-  } else {
+  popRef(ls, id, keep);
+}
+
+void popRef(LuaState ls, int id, bool keep) {
+  if (id <= 0) {
     ls.pushNil();
+    return;
+  }
+  ls.getGlobal(_refTableName);
+  if (!ls.isTable(-1)) {
+    ls.pushNil();
+    return;
+  }
+  var name = "ref$id";
+  ls.getField(-1, name);
+  if (!keep) {
+    ls.pushNil();
+    ls.setField(-3, name);
   }
 }
 
