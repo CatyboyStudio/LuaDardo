@@ -239,8 +239,8 @@ Object? toDartData(LuaState ls, int i) {
         List<Object?>? l;
         var tidx = ls.absIndex(i);
         // len
-        ls.len(i);
-        var c = ls.toInteger(i);
+        ls.len(tidx);
+        var c = ls.toInteger(-1);
         ls.pop(1);
         // for each
         ls.pushNil();
