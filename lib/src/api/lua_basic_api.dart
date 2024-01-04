@@ -320,6 +320,7 @@ void popRef(LuaState ls, int id, bool keep) {
   }
   ls.getGlobal(_refTableName);
   if (!ls.isTable(-1)) {
+    ls.pop(1);
     ls.pushNil();
     return;
   }
@@ -329,6 +330,7 @@ void popRef(LuaState ls, int id, bool keep) {
     ls.pushNil();
     ls.setField(-3, name);
   }
+  ls.remove(-2);
 }
 
 int pushBytes(LuaState state, Uint8List bs) {
